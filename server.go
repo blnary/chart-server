@@ -19,6 +19,7 @@ var (
 func main() {
 
 	// init database
+	flag.Parse()
 	db, err := gorm.Open(mysql.Open(*connStr), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
@@ -31,9 +32,15 @@ func main() {
 	// init server
 	server := gin.Default()
 	public := server.Group("")
-	public.POST("song", PostSong(db))
+	public.GET("songs/:id", GetSongFile(db))
+	public.GET("charts", GetCharts(db))
+	public.POST("charts", PostCharts(db))
+	public.POST("songs", PostSongs(db))
 	admin := server.Group("")
 	admin.Use(AuthMiddleware())
+	admin.POST("charts/:id", PostChart(db))
+	admin.DELETE("charts/:id", DeleteChart(db))
+	admin.DELETE("songs/:id", DeleteSong(db))
 
 	// run server
 	log.Printf("listening at %s", *listenAddr)

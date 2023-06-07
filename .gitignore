@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Docker compose file
+docker-compose.yml
+
+# Output file
+bin/**
