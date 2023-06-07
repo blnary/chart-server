@@ -162,7 +162,7 @@ func PostSongs(db *gorm.DB) gin.HandlerFunc {
 		// save song file to disk
 		base := filepath.Base(file.Filename)
 		ext := filepath.Ext(file.Filename)
-		dir := fmt.Sprintf("./songs/%s%s", uuid.NewV4().String(), ext)
+		dir := fmt.Sprintf("/songs/%s%s", uuid.NewV4().String(), ext)
 		if err := c.SaveUploadedFile(file, dir); err != nil {
 			rep := &PostSongsReply{
 				Success: false,

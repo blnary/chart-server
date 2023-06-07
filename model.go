@@ -18,6 +18,11 @@ type Chart struct {
 	Song    Song   `json:"song"`
 }
 
+type GeneralReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg"`
+}
+
 type GetChartsReply struct {
 	Success bool    `json:"success"`
 	Charts  []Chart `json:"charts"`

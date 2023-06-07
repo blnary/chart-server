@@ -54,10 +54,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		userCredential := c.GetHeader("Credential")
 		cond := userCredential == *credential
 		if !cond {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code": http.StatusUnauthorized,
-				"msg":  "credential incorrect",
-			})
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     "credential incorrect",
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, rep)
 			return
 		}
 		c.Next()
