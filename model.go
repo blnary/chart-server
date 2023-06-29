@@ -1,18 +1,14 @@
 package main
 
-import (
-	"gorm.io/gorm"
-)
-
 type Song struct {
-	gorm.Model
+	ID       uint    `json:"id" gorm:"primarykey"`
 	Name     string  `json:"name"`
 	Location string  `json:"location"`
 	Charts   []Chart `json:"charts"`
 }
 
 type Chart struct {
-	gorm.Model
+	ID      uint   `json:"id" gorm:"primarykey"`
 	Content string `json:"content"`
 	SongID  uint   `json:"song_id"`
 	Song    Song   `json:"song"`
@@ -20,6 +16,12 @@ type Chart struct {
 
 type GeneralReply struct {
 	Success bool   `json:"success"`
+	Msg     string `json:"msg"`
+}
+
+type GetSongsReply struct {
+	Success bool   `json:"success"`
+	Songs   []Song `json:"songs"`
 	Msg     string `json:"msg"`
 }
 

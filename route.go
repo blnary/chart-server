@@ -17,7 +17,7 @@ func GetCharts(db *gorm.DB) gin.HandlerFunc {
 		// read charts
 		var charts []Chart
 		if err := db.Preload("Song").Find(&charts).Error; err != nil {
-			rep := &GetChartsReply{
+			rep := &GeneralReply{
 				Success: false,
 				Msg:     fmt.Sprintf("failed to read charts: %v", err),
 			}
@@ -29,6 +29,29 @@ func GetCharts(db *gorm.DB) gin.HandlerFunc {
 		rep := &GetChartsReply{
 			Success: true,
 			Charts:  charts,
+		}
+		c.JSON(http.StatusOK, rep)
+	}
+}
+
+func GetSongs(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// read songs
+		var songs []Song
+		if err := db.Find(&songs).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read charts: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// reply
+		rep := &GetSongsReply{
+			Success: true,
+			Songs:   songs,
 		}
 		c.JSON(http.StatusOK, rep)
 	}

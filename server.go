@@ -34,6 +34,7 @@ func main() {
 	public := server.Group("")
 	public.GET("songs/:id", GetSongFile(db))
 	public.GET("charts", GetCharts(db))
+	public.GET("songs", GetSongs(db))
 	public.POST("charts", PostCharts(db))
 	public.POST("songs", PostSongs(db))
 	admin := server.Group("")
