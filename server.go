@@ -16,6 +16,8 @@ var (
 	credential = flag.String("credential", "speciallady", "Credential of admin auth")
 )
 
+const BPM_SERVER_URL = "http://bpm-server:8000/"
+
 func main() {
 
 	// init database
@@ -35,6 +37,8 @@ func main() {
 	public.GET("songs/:id", GetSongFile(db))
 	public.GET("charts", GetCharts(db))
 	public.GET("songs", GetSongs(db))
+	public.GET("bpm/:id", GetBPM(db))
+	public.GET("test/bpm", TestBPM(db))
 	public.POST("charts", PostCharts(db))
 	public.POST("songs", PostSongs(db))
 	admin := server.Group("")

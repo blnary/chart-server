@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,7 +43,7 @@ func GetSongs(db *gorm.DB) gin.HandlerFunc {
 		if err := db.Find(&songs).Error; err != nil {
 			rep := &GeneralReply{
 				Success: false,
-				Msg:     fmt.Sprintf("failed to read charts: %v", err),
+				Msg:     fmt.Sprintf("failed to read songs: %v", err),
 			}
 			c.JSON(http.StatusInternalServerError, rep)
 			return
@@ -52,6 +53,56 @@ func GetSongs(db *gorm.DB) gin.HandlerFunc {
 		rep := &GetSongsReply{
 			Success: true,
 			Songs:   songs,
+		}
+		c.JSON(http.StatusOK, rep)
+	}
+}
+
+func GetBPM(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// get id
+		id := c.Param("id")
+
+		// read song
+		var song Song
+		if err := db.First(&song, id).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// try read from server
+		if song.BPM == 0 {
+			reply, err := getBPM(&song)
+			if err != nil {
+				rep := &GeneralReply{
+					Success: false,
+					Msg:     fmt.Sprintf("failed to calculate BPM: %v", err),
+				}
+				c.JSON(http.StatusInternalServerError, rep)
+				return
+			}
+			song.BPM = reply.BPM
+			song.Offset = reply.Offset
+			if err := db.Save(&song).Error; err != nil {
+				rep := &GeneralReply{
+					Success: false,
+					Msg:     fmt.Sprintf("failed to save updated song: %v", err),
+				}
+				c.JSON(http.StatusInternalServerError, rep)
+				return
+			}
+		}
+
+		// reply
+		rep := &GetBPMReply{
+			Success: true,
+			BPM:     song.BPM,
+			Offset:  song.Offset,
 		}
 		c.JSON(http.StatusOK, rep)
 	}
@@ -198,6 +249,8 @@ func PostSongs(db *gorm.DB) gin.HandlerFunc {
 		// save song info to db
 		song := &Song{
 			Name:     base,
+			BPM:      0,
+			Offset:   0,
 			Location: dir,
 		}
 		if err := db.Create(song).Error; err != nil {
@@ -271,6 +324,76 @@ func DeleteSong(db *gorm.DB) gin.HandlerFunc {
 		// reply
 		rep := &DeleteSongReply{
 			Success: true,
+		}
+		c.JSON(http.StatusOK, rep)
+	}
+}
+
+func TestBPM(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// read song
+		var songs []Song
+		if err := db.Preload("Charts").Find(&songs).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read songs: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// start testing each songs
+		bpmCorrect := 0
+		testTotal := 0
+		offsetCorrect := 0
+		for _, song := range songs {
+			if len(song.Charts) == 0 {
+				continue
+			}
+			chart := song.Charts[0]
+			var level Level
+			if err := json.Unmarshal([]byte(chart.Content), &level); err != nil {
+				continue
+			}
+			bpm := level.BPM
+			spb := 60.0 / bpm
+			offset := float64(level.Offset) / float64(level.SampleRate)
+			if spb > 0 {
+				for offset > spb {
+					offset -= spb
+				}
+			}
+			offset *= 1000
+			reply, err := getBPM(&song)
+			if err != nil {
+				continue
+			}
+			bpmErr := eqErr(reply.BPM, bpm)
+			if bpmErr < 0.5 {
+				bpmCorrect++
+			}
+			testTotal++
+			offsetErr := relErr(reply.Offset, offset, spb*1000)
+			if offsetErr < 30 {
+				offsetCorrect++
+			}
+			fmt.Printf(
+				"%d %.2f %.1f | BPM %.2f - %.2f | Offset %.1f - %.1f\n",
+				song.ID,
+				bpmErr,
+				offsetErr,
+				bpm,
+				reply.BPM,
+				offset,
+				reply.Offset,
+			)
+		}
+
+		// reply
+		rep := &GeneralReply{
+			Success: true,
+			Msg:     fmt.Sprintf("BPM: %d / %d correct; Offset: %d / %d correct", bpmCorrect, testTotal, offsetCorrect, testTotal),
 		}
 		c.JSON(http.StatusOK, rep)
 	}
