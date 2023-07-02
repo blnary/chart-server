@@ -145,6 +145,120 @@ func GetSongFile(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func SetBPM(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the song ID from the request parameters
+		id := c.Param("id")
+
+		// Read the song from the database
+		var song Song
+		if err := db.First(&song, id).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Parse the BPM and offset values from the request body
+		var requestBody struct {
+			BPM    float64 `json:"bpm"`
+			Offset float64 `json:"offset"`
+		}
+		if err := c.ShouldBindJSON(&requestBody); err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to parse request body: %v", err),
+			}
+			c.JSON(http.StatusBadRequest, rep)
+			return
+		}
+
+		// Update the song's BPM and offset
+		song.BPM = requestBody.BPM
+		song.Offset = requestBody.Offset
+
+		// Save the updated song to the database
+		if err := db.Save(&song).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to save updated song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Reply with a success message
+		rep := &GeneralReply{
+			Success: true,
+			Msg:     "BPM and offset successfully updated.",
+		}
+		c.JSON(http.StatusOK, rep)
+	}
+}
+
+func SyncBPM(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the song ID from the request parameters
+		id := c.Param("id")
+
+		// Read the song from the database
+		var song Song
+		if err := db.First(&song, id).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Check if song has charts
+		if len(song.Charts) == 0 {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("song has no charts"),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Read BPM from song's chart
+		chart := song.Charts[0]
+		var level Level
+		if err := json.Unmarshal([]byte(chart.Content), &level); err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to get chart of BPM: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Update the song's BPM and offset
+		song.BPM = level.BPM
+		song.Offset = float64(level.Offset) / 44.1
+
+		// Save the updated song to the database
+		if err := db.Save(&song).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to save updated song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// Reply with a success message
+		rep := &GeneralReply{
+			Success: true,
+			Msg:     "BPM and offset successfully updated.",
+		}
+		c.JSON(http.StatusOK, rep)
+	}
+}
+
 func PostCharts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 

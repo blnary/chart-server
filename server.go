@@ -39,6 +39,8 @@ func main() {
 	public.GET("songs", GetSongs(db))
 	public.GET("bpm/:id", GetBPM(db))
 	public.GET("test/bpm", TestBPM(db))
+	public.POST("bpm/:id", SetBPM(db))
+	public.POST("sync/:id", SyncBPM(db))
 	public.POST("charts", PostCharts(db))
 	public.POST("songs", PostSongs(db))
 	admin := server.Group("")
