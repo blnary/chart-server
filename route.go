@@ -150,7 +150,7 @@ func CalBPM(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, rep)
 			return
 		}
-		song.BPM = reply.BPM
+		song.BPM = math.Round(reply.BPM)
 		song.Offset = reply.Offset
 		if err := db.Save(&song).Error; err != nil {
 			rep := &GeneralReply{
@@ -164,7 +164,7 @@ func CalBPM(db *gorm.DB) gin.HandlerFunc {
 		// reply
 		rep := &GetBPMReply{
 			Success: true,
-			BPM:     math.Round(song.BPM),
+			BPM:     song.BPM,
 			Offset:  song.Offset,
 		}
 		c.JSON(http.StatusOK, rep)
