@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -163,7 +164,7 @@ func CalBPM(db *gorm.DB) gin.HandlerFunc {
 		// reply
 		rep := &GetBPMReply{
 			Success: true,
-			BPM:     song.BPM,
+			BPM:     math.Round(song.BPM),
 			Offset:  song.Offset,
 		}
 		c.JSON(http.StatusOK, rep)
