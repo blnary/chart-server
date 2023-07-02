@@ -40,6 +40,7 @@ func main() {
 	public.GET("bpm/:id", GetBPM(db))
 	public.GET("test/bpm", TestBPM(db))
 	public.POST("bpm/:id", SetBPM(db))
+	public.POST("cal/:id", CalBPM(db))
 	public.POST("sync/:id", SyncBPM(db))
 	public.POST("charts", PostCharts(db))
 	public.POST("songs", PostSongs(db))

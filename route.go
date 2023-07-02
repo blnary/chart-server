@@ -75,29 +75,6 @@ func GetBPM(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// try read from server
-		if song.BPM == 0 {
-			reply, err := getBPM(&song)
-			if err != nil {
-				rep := &GeneralReply{
-					Success: false,
-					Msg:     fmt.Sprintf("failed to calculate BPM: %v", err),
-				}
-				c.JSON(http.StatusInternalServerError, rep)
-				return
-			}
-			song.BPM = reply.BPM
-			song.Offset = reply.Offset
-			if err := db.Save(&song).Error; err != nil {
-				rep := &GeneralReply{
-					Success: false,
-					Msg:     fmt.Sprintf("failed to save updated song: %v", err),
-				}
-				c.JSON(http.StatusInternalServerError, rep)
-				return
-			}
-		}
-
 		// reply
 		rep := &GetBPMReply{
 			Success: true,
@@ -142,6 +119,54 @@ func GetSongFile(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		c.Writer.Flush()
+	}
+}
+
+func CalBPM(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// get id
+		id := c.Param("id")
+
+		// read song
+		var song Song
+		if err := db.First(&song, id).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to read song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// try read from server
+		reply, err := getBPM(&song)
+		if err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to calculate BPM: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+		song.BPM = reply.BPM
+		song.Offset = reply.Offset
+		if err := db.Save(&song).Error; err != nil {
+			rep := &GeneralReply{
+				Success: false,
+				Msg:     fmt.Sprintf("failed to save updated song: %v", err),
+			}
+			c.JSON(http.StatusInternalServerError, rep)
+			return
+		}
+
+		// reply
+		rep := &GetBPMReply{
+			Success: true,
+			BPM:     song.BPM,
+			Offset:  song.Offset,
+		}
+		c.JSON(http.StatusOK, rep)
 	}
 }
 
@@ -205,7 +230,7 @@ func SyncBPM(db *gorm.DB) gin.HandlerFunc {
 
 		// Read the song from the database
 		var song Song
-		if err := db.First(&song, id).Error; err != nil {
+		if err := db.Preload("Charts").First(&song, id).Error; err != nil {
 			rep := &GeneralReply{
 				Success: false,
 				Msg:     fmt.Sprintf("failed to read song: %v", err),
@@ -251,9 +276,10 @@ func SyncBPM(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Reply with a success message
-		rep := &GeneralReply{
+		rep := &GetBPMReply{
 			Success: true,
-			Msg:     "BPM and offset successfully updated.",
+			BPM:     song.BPM,
+			Offset:  song.Offset,
 		}
 		c.JSON(http.StatusOK, rep)
 	}
