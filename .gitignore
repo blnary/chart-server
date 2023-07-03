@@ -24,4 +24,4 @@ go.work
 docker-compose.yml
 
 # Output file
-bin/**
+bin/server
